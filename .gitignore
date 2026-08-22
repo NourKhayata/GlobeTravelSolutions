@@ -1,0 +1,13 @@
+# Real customer data — contains PII (passport numbers, DOB, email, phone).
+# Never commit these. The app supports uploading them via the sidebar instead.
+*.xlsx
+data/*
+
+# Python / virtual env
+.venv/
+__pycache__/
+*.pyc
+
+# OS / editor cruft
+.DS_Store
+.claude/
