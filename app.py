@@ -84,6 +84,10 @@ PERSONAL_FIELDS = [
     "Emergency Contact Name",
 ]
 
+AGE_BRACKET_COL = "Client Age Bracket"
+AGE_BRACKET_ORDER = ["0-17", "18-25", "26-35", "36-45", "46-55", "56-65", "66-75", "76+"]
+AGE_BRACKET_BINS = [-1, 17, 25, 35, 45, 55, 65, 75, 150]
+
 st.set_page_config(page_title=APP_TITLE, layout="wide")
 
 
@@ -161,7 +165,7 @@ def load_excel(uploaded_file_bytes: Optional[bytes], fallback_path: Optional[str
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].astype(str).str.strip().replace({"nan": np.nan, "None": np.nan, "": np.nan})
 
-    for col in ["Issue Date", "Creation", "Modification Date", "Inception Date", "Expiry Date"]:
+    for col in ["Issue Date", "Creation", "Modification Date", "Inception Date", "Expiry Date", "Beneficiary Date of Birth"]:
         if col in df.columns:
             df[col] = clean_date(df[col])
 
@@ -185,6 +189,12 @@ def load_excel(uploaded_file_bytes: Optional[bytes], fallback_path: Optional[str
     if "Issue Date" in df.columns:
         df["Issue Month"] = df["Issue Date"].dt.to_period("M").dt.to_timestamp()
         df["Issue Year"] = df["Issue Date"].dt.year
+
+    if "Beneficiary Date of Birth" in df.columns and "Issue Date" in df.columns:
+        age_at_issue = (df["Issue Date"] - df["Beneficiary Date of Birth"]).dt.days / 365.25
+        df[AGE_BRACKET_COL] = pd.cut(
+            age_at_issue, bins=AGE_BRACKET_BINS, labels=AGE_BRACKET_ORDER
+        ).astype(str).replace({"nan": np.nan})
 
     if "Reference Number" in df.columns:
         df["Policy Count"] = 1
@@ -263,15 +273,25 @@ def kpi_cards(df: pd.DataFrame, use_usd: bool = False):
     c5.metric("Cancellation Rate", f"{cancellation_rate:.2%}")
 
 
-def bar_count(df: pd.DataFrame, col: str, title: str, top_n: int = 15):
+def bar_count(df: pd.DataFrame, col: str, title: str, top_n: int = 15, category_order: Optional[list] = None):
     if col not in df.columns:
         st.info(f"Column not found: {col}")
         return
     out = df[col].fillna("(Missing)").value_counts(dropna=False).reset_index()
     out.columns = [col, "Policies"]
-    out = out.head(top_n)
+
+    if category_order:
+        order = [c for c in category_order if c in out[col].values] + ["(Missing)"]
+        out[col] = pd.Categorical(out[col], categories=order, ordered=True)
+        out = out.sort_values(col)
+    else:
+        out = out.head(top_n)
+
     fig = px.bar(out, x="Policies", y=col, orientation="h", title=title, text_auto=",.0f")
-    fig.update_layout(yaxis={"categoryorder": "total ascending"})
+    if category_order:
+        fig.update_layout(yaxis={"categoryorder": "array", "categoryarray": order[::-1]})
+    else:
+        fig.update_layout(yaxis={"categoryorder": "total ascending"})
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -363,6 +383,11 @@ def geography_product_page(df: pd.DataFrame, use_usd: bool = False):
     with c2:
         bar_count(df, "Destination", "Top Destinations", top_n=20)
         bar_count(df, "Plan", "Top Plans", top_n=20)
+
+    bar_count(
+        df, AGE_BRACKET_COL, "Client Age Bracket Distribution",
+        category_order=AGE_BRACKET_ORDER,
+    )
 
 
 def data_quality_page(df: pd.DataFrame, use_usd: bool = False):
