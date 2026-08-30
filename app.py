@@ -1105,40 +1105,48 @@ def growth_recommendations(fin: pd.DataFrame, cost_cols: list):
     c3.metric("Value of 1pt lower Cost of Sales", f"${cos_point_value:,.0f}", "profit per quarter")
 
     st.markdown(
+        "Ordered by how soon and how cheaply each can be attempted, not by size of "
+        "impact: a distributor without a dedicated data or analytics team has to "
+        "sequence its effort, not just diagnose it."
+    )
+    st.markdown(
         f"""
-**1. Make the cost base flex with revenue — this is what caused the loss years.**
-The worst quarter ({worst[QUARTER_COL]}, {worst['Net Margin %']:.1f}% margin) was not a cost explosion, it was
-revenue falling to ${worst[REVENUE_COL]:,.0f} while payroll kept climbing: staff cost hit
-{worst_payroll_share:.0f}% of revenue versus {best_payroll_share:.0f}% in the best quarter ({best[QUARTER_COL]}).
-Move part of compensation to commission or bonus tied to written premium, and staff peak quarters with
-contract or seasonal agents instead of permanent headcount. A cost base that falls when sales fall would have
-turned that loss into roughly break-even.
+**1. Now, at no cost (owner: sales / account management).**
+If a single scheme or partner drives a large, irregular spike in production (see Sales Performance and
+Production Overview for which one), ask to shift its renewal into a quiet quarter instead of the peak. Part of
+what looks like seasonality is often a renewal calendar the company can ask to change; this is a conversation,
+not a program, and it reduces the concentration risk of one renewal moving unexpectedly.
 
-**2. Attack Cost of Sales — it is the largest single line at {cos_share:.1f}% of revenue.**
-Every point shaved is about ${cos_point_value:,.0f} of profit per quarter at the current run rate, with no extra sales
-needed. Levers: renegotiate commission and reinsurance tiers using the volume growth as leverage, consolidate
-production onto the two or three carriers with the best net terms, and push the plans with the widest gap
-between premium charged and ceded premium.
+**2. Now, at no cost (owner: whoever processes cancellations).**
+Add a save-the-sale step, such as a call or a small offer, before a cancellation is finalized, and enforce
+complete point-of-sale data capture at that same step. Track the current cancellation rate on the Production
+Overview page; every point recovered there is acquisition effort that already happened.
 
-**3. Cap fixed overhead as a percentage of revenue, not as an annual budget.**
-Administrative and other operating costs never fall in a down quarter, so they convert every revenue dip
-straight into a loss. Set a ceiling (for example administrative at 11% of revenue) and review it quarterly
-rather than yearly.
+**3. This quarter (owner: sales / marketing).**
+Redirect marketing spend and account-executive push toward the weak quarters using plans already in the
+catalogue, not new products: launching a new plan needs underwriting sign-off from the partner insurance
+companies and is not something the distributor controls unilaterally.
 
-**4. Fill the weak quarters instead of discounting the strong ones.**
-Production is seasonal, so profit swings with it. Off-season products carry the fixed base: annual multi-trip
-policies, student and expatriate cover, corporate and group travel accounts, and Schengen or visa-driven
-policies that sell year round.
+**4. This quarter (owner: sales).**
+Concentrate incentive spend on the top distributors, POS and account executives already producing the highest
+Gross (see Sales Performance), plus a specific push on family and group bundling to raise members per policy.
+Uses the sales channel the company already has rather than building a new one.
 
-**5. Grow revenue where margin already works.**
-From the production pages: concentrate incentives on the top distributors, POS and account executives already
-producing the highest Gross, raise members per policy through family and group bundling, and cross-sell higher
-coverage zones and longer durations, which raise premium far more than they raise servicing cost.
+**5. Next (owner: finance / management, structural).**
+Prioritize commission and ceded-premium renegotiation with the single highest-volume insurance company first
+(see Sales Performance for which one), before attempting the rest. Cost of Sales is the largest single line at
+{cos_share:.1f}% of revenue, and every point shaved is about ${cos_point_value:,.0f} of profit per quarter with
+no extra sales needed, but a renegotiation ranked by volume is realistic where a blanket renegotiation across
+every partner at once is not.
 
-**6. Convert the cancellation rate into revenue.**
-Cancelled policies cost acquisition effort but return nothing. Cutting cancellations reduces refund leakage and
-lifts revenue with zero additional marketing spend — track it on the Production Overview page alongside these
-financials.
+**6. Ongoing (owner: finance / management, structural).**
+Add seasonal or contract staffing for peak quarters instead of restructuring core compensation, and use this
+simulator itself as a standing quarterly check: the worst quarter ({worst[QUARTER_COL]},
+{worst['Net Margin %']:.1f}% margin) was not a cost explosion, it was revenue falling to
+${worst[REVENUE_COL]:,.0f} while payroll and benefits kept climbing to {worst_payroll_share:.0f}% of revenue,
+against {best_payroll_share:.0f}% in the best quarter ({best[QUARTER_COL]}). If that share starts climbing back
+toward {worst_payroll_share:.0f}%, treat it as an early warning rather than waiting for the quarter to close at
+a loss.
 """
     )
 
