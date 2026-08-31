@@ -635,6 +635,7 @@ def forecasting_page(df: pd.DataFrame, use_usd: bool = False):
     results = []
     errors = []
     validation_scores = []
+    validation_residuals = {}
 
     for method_name in selected_methods:
         method = available_methods[method_name]
@@ -647,6 +648,11 @@ def forecasting_page(df: pd.DataFrame, use_usd: bool = False):
                     "RMSE": score["RMSE"],
                     "MAPE": score["MAPE"],
                 }
+            )
+            common_idx = validation.index.intersection(valid_forecast.index)
+            validation_residuals[method_name] = (
+                validation.loc[common_idx].astype(float).values
+                - valid_forecast.loc[common_idx].astype(float).values
             )
         except Exception as exc:
             errors.append(f"Validation {method_name}: {exc}")
@@ -666,12 +672,26 @@ def forecasting_page(df: pd.DataFrame, use_usd: bool = False):
     else:
         methods_to_run = selected_methods
 
+    interval_band = None
     for method_name in methods_to_run:
         method = available_methods[method_name]
         try:
             forecast_series = method(monthly, horizon)
             forecast_df = pd.DataFrame({"Month": forecast_series.index, "Value": forecast_series.values, "Method": method_name})
             results.append(forecast_df)
+            if method_name == best_method_name and method_name in validation_residuals:
+                resid = validation_residuals[method_name]
+                rng = np.random.default_rng(7)
+                boot = rng.choice(np.abs(resid), size=20000, replace=True)
+                half_width = np.percentile(boot, 80)
+                steps = np.arange(1, len(forecast_series) + 1)
+                interval_band = pd.DataFrame(
+                    {
+                        "Month": forecast_series.index,
+                        "Lower": forecast_series.values - half_width * np.sqrt(steps),
+                        "Upper": forecast_series.values + half_width * np.sqrt(steps),
+                    }
+                )
         except Exception as exc:
             errors.append(f"{method_name}: {exc}")
 
@@ -682,6 +702,26 @@ def forecasting_page(df: pd.DataFrame, use_usd: bool = False):
     if use_usd and target_col.endswith("_USD"):
         title = f"{target} Forecast (USD)"
     fig = px.line(display_df, x="Month", y="Value", color="Method", markers=True, title=title)
+    if interval_band is not None:
+        fig.add_trace(
+            go.Scatter(
+                x=pd.concat([interval_band["Month"], interval_band["Month"][::-1]]),
+                y=pd.concat([interval_band["Upper"], interval_band["Lower"][::-1]]),
+                fill="toself",
+                fillcolor="rgba(99, 110, 250, 0.15)",
+                line=dict(color="rgba(255,255,255,0)"),
+                hoverinfo="skip",
+                name="80% bootstrap interval",
+                showlegend=True,
+            )
+        )
+        st.caption(
+            "Shaded band: approximate 80% prediction interval from a residual "
+            f"bootstrap on the {best_method_name} model's validation errors, "
+            "widened by the square root of months ahead. With only "
+            f"{validation_months} validation months, treat it as a rough "
+            "planning range rather than a formal confidence interval."
+        )
     st.plotly_chart(fig, use_container_width=True)
 
     if errors:
