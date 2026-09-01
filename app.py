@@ -465,7 +465,7 @@ def arima_forecast(series: pd.Series, horizon: int) -> pd.Series:
         raise ImportError("statsmodels is required for ARIMA forecasting")
     from statsmodels.tsa.arima.model import ARIMA
 
-    series = series.asfreq("MS").fillna(method="ffill").fillna(0)
+    series = series.asfreq("MS").ffill().fillna(0)
     model = ARIMA(series, order=(1, 1, 1))
     fit = model.fit()
     future_index = pd.date_range(series.index.max() + pd.offsets.MonthBegin(1), periods=horizon, freq="MS")
@@ -477,7 +477,7 @@ def sarima_forecast(series: pd.Series, horizon: int) -> pd.Series:
         raise ImportError("statsmodels is required for SARIMA forecasting")
     from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-    series = series.asfreq("MS").fillna(method="ffill").fillna(0)
+    series = series.asfreq("MS").ffill().fillna(0)
     model = SARIMAX(
         series,
         order=(1, 1, 1),
@@ -496,7 +496,7 @@ def stl_arima_forecast(series: pd.Series, horizon: int) -> pd.Series:
     from statsmodels.tsa.arima.model import ARIMA
     from statsmodels.tsa.forecasting.stl import STLForecast
 
-    series = series.asfreq("MS").fillna(method="ffill").fillna(0).astype(float)
+    series = series.asfreq("MS").ffill().fillna(0).astype(float)
     if len(series) < 24:
         raise ValueError("STL + ARIMA needs at least two full years of monthly data")
     stlf = STLForecast(
@@ -516,7 +516,7 @@ def ml_regression_forecast(series: pd.Series, horizon: int) -> pd.Series:
         raise ImportError("scikit-learn is required for machine-learning forecasting")
     from sklearn.linear_model import Ridge
 
-    series = series.asfreq("MS").fillna(method="ffill").fillna(0).astype(float)
+    series = series.asfreq("MS").ffill().fillna(0).astype(float)
     n_lags = min(12, len(series) - 1)
     if n_lags < 3:
         raise ValueError("Not enough data for ML regression forecasting")
@@ -543,7 +543,7 @@ def ml_regression_forecast(series: pd.Series, horizon: int) -> pd.Series:
 def prophet_forecast(series: pd.Series, horizon: int) -> pd.Series:
     if not PROPHET_AVAILABLE:
         raise ImportError("Prophet is not installed")
-    df = series.asfreq("MS").fillna(method="ffill").fillna(0).reset_index()
+    df = series.asfreq("MS").ffill().fillna(0).reset_index()
     df.columns = ["ds", "y"]
     model = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
     model.fit(df)
